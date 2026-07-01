@@ -131,9 +131,9 @@ export function inverseKinematics(
     const dz = targetPos.z - currentPos.z;
 
     // Orientation error (simplified — just use degree differences)
-    const dRoll = targetOri.roll - currentOri.roll;
-    const dPitch = targetOri.pitch - currentOri.pitch;
-    const dYaw = targetOri.yaw - currentOri.yaw;
+    const dRoll = normalizeAngle(targetOri.roll - currentOri.roll);
+    const dPitch = normalizeAngle(targetOri.pitch - currentOri.pitch);
+    const dYaw = normalizeAngle(targetOri.yaw - currentOri.yaw);
 
     // Error vector [dx, dy, dz, dRoll, dPitch, dYaw]
     const error = [dx, dy, dz, dRoll * 0.1, dPitch * 0.1, dYaw * 0.1];
@@ -197,9 +197,9 @@ function computeJacobian(config: ArmConfig, angles: number[]): number[][] {
       (perturbedPose.position.x - currentPose.position.x) / denom,
       (perturbedPose.position.y - currentPose.position.y) / denom,
       (perturbedPose.position.z - currentPose.position.z) / denom,
-      ((perturbedPose.orientation.roll - currentPose.orientation.roll) * 0.1) / denom,
-      ((perturbedPose.orientation.pitch - currentPose.orientation.pitch) * 0.1) / denom,
-      ((perturbedPose.orientation.yaw - currentPose.orientation.yaw) * 0.1) / denom,
+      (normalizeAngle(perturbedPose.orientation.roll - currentPose.orientation.roll) * 0.1) / denom,
+      (normalizeAngle(perturbedPose.orientation.pitch - currentPose.orientation.pitch) * 0.1) / denom,
+      (normalizeAngle(perturbedPose.orientation.yaw - currentPose.orientation.yaw) * 0.1) / denom,
     ];
 
     jacobian.push(col);
@@ -323,4 +323,12 @@ export function getWorkspaceRadius(config: ArmConfig): number {
     maxReach += Math.abs(axis.dhParams.a) + Math.abs(axis.dhParams.d);
   }
   return maxReach;
+}
+
+/** Helper to normalize degree differences to [-180, 180] */
+function normalizeAngle(deg: number): number {
+  let a = deg % 360;
+  if (a > 180) a -= 360;
+  if (a < -180) a += 360;
+  return a;
 }

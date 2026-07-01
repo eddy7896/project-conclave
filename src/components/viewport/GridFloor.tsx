@@ -17,13 +17,13 @@ export function GridFloor() {
     <group>
       {/* Main grid */}
       <gridHelper
-        args={[600, 30, '#1e3a5f', '#111827']}
+        args={[600, 30, '#94a3b8', '#cbd5e1']}
         position={[0, 0, 0]}
       />
 
       {/* Fine grid */}
       <gridHelper
-        args={[600, 120, '#0d1b2a', '#0d1b2a']}
+        args={[600, 120, '#e2e8f0', '#e2e8f0']}
         position={[0, 0.1, 0]}
       />
 
@@ -31,9 +31,9 @@ export function GridFloor() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
         <planeGeometry args={[800, 800]} />
         <meshStandardMaterial
-          color="#080d1a"
+          color="#f8fafc"
           transparent
-          opacity={0.95}
+          opacity={0.8}
         />
       </mesh>
 

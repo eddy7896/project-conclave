@@ -24,6 +24,7 @@ export function CartesianPanel() {
 
   // Sync inputs when end-effector changes from joint control
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTargetX(endEffectorPose.position.x.toFixed(1));
     setTargetY(endEffectorPose.position.y.toFixed(1));
     setTargetZ(endEffectorPose.position.z.toFixed(1));

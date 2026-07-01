@@ -9,7 +9,7 @@
  * positions instead of snapping, which prevents visual segment overlap.
  */
 
-import { useRef, useMemo, useState, useCallback } from 'react';
+import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useArmStore } from '@/store/arm-store';
@@ -38,13 +38,12 @@ export function ArmModel() {
   const [revision, setRevision] = useState(0);
 
   // Keep a stable reference to the latest target angles for the useFrame cb
-  const targetAnglesRef = useRef<number[]>(jointAngles);
-  targetAnglesRef.current = jointAngles;
-
   // Ensure displayAnglesRef length stays in sync with config changes
-  if (displayAnglesRef.current.length !== jointAngles.length) {
-    displayAnglesRef.current = [...jointAngles];
-  }
+  useEffect(() => {
+    if (displayAnglesRef.current.length !== jointAngles.length) {
+      displayAnglesRef.current = [...jointAngles];
+    }
+  }, [jointAngles]);
 
   // Per-frame interpolation + floating animation
   useFrame((state, delta) => {
@@ -54,7 +53,7 @@ export function ArmModel() {
     }
 
     // Smooth lerp of display angles toward target angles
-    const target = targetAnglesRef.current;
+    const target = useArmStore.getState().jointAngles;
     const display = displayAnglesRef.current;
     let changed = false;
 
@@ -105,12 +104,12 @@ export function ArmModel() {
       const startPos = new THREE.Vector3(
         transforms[i][0][3],
         transforms[i][2][3],  // Swap Y/Z for Three.js (Y-up)
-        transforms[i][1][3]
+        -transforms[i][1][3]  // Negate to preserve right-handedness
       );
       const endPos = new THREE.Vector3(
         transforms[i + 1][0][3],
         transforms[i + 1][2][3],
-        transforms[i + 1][1][3]
+        -transforms[i + 1][1][3]
       );
 
       const axis = config.axes[i];
@@ -125,7 +124,7 @@ export function ArmModel() {
       m.set(
         T[0][0], T[0][2], -T[0][1], 0,
         T[2][0], T[2][2], -T[2][1], 0,
-        T[1][0], T[1][2], -T[1][1], 0,
+        -T[1][0], -T[1][2], T[1][1], 0,
         0,       0,        0,       1
       );
       const frameQuaternion = new THREE.Quaternion().setFromRotationMatrix(m);
@@ -216,7 +215,7 @@ export function ArmModel() {
           position={new THREE.Vector3(
             transforms[transforms.length - 1][0][3],
             transforms[transforms.length - 1][2][3],
-            transforms[transforms.length - 1][1][3]
+            -transforms[transforms.length - 1][1][3]
           )}
         />
       )}

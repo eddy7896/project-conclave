@@ -56,7 +56,7 @@ export const DEFAULT_ARM_CONFIG: ArmConfig = {
       jointType: 'prismatic',
       type: 'servo',
       motorModel: 'MG996R',
-      dhParams: { a: 0, d: 0, alpha: -90, thetaOffset: 0 },
+      dhParams: { a: 0, d: 0, alpha: 0, thetaOffset: 0 },
       limits: { min: 0, max: 150 }, // 0 to 150mm extension
       linkLength: 100,
       linkRadius: 10,
