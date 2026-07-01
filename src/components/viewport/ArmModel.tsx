@@ -98,6 +98,7 @@ export function ArmModel() {
       radius: number;
       jointRadius: number;
       axisIndex: number;
+      frameQuaternion: THREE.Quaternion;
     }[] = [];
 
     for (let i = 0; i < transforms.length - 1; i++) {
@@ -113,6 +114,22 @@ export function ArmModel() {
       );
 
       const axis = config.axes[i];
+      
+      // Compute correct rotation for the joint frame
+      const m = new THREE.Matrix4();
+      const T = transforms[i];
+      // Map DH Z-up to Three.js Y-up:
+      // Three X = DH X
+      // Three Y = DH Z
+      // Three Z = -DH Y
+      m.set(
+        T[0][0], T[0][2], -T[0][1], 0,
+        T[2][0], T[2][2], -T[2][1], 0,
+        T[1][0], T[1][2], -T[1][1], 0,
+        0,       0,        0,       1
+      );
+      const frameQuaternion = new THREE.Quaternion().setFromRotationMatrix(m);
+
       segs.push({
         start: startPos,
         end: endPos,
@@ -120,6 +137,7 @@ export function ArmModel() {
         radius: axis?.linkRadius ?? 10,
         jointRadius: axis?.jointRadius ?? 12,
         axisIndex: i,
+        frameQuaternion,
       });
     }
 
@@ -173,6 +191,7 @@ export function ArmModel() {
               jointRadius={seg.jointRadius}
               isSelected={selectedJoint === seg.axisIndex}
               onClick={() => selectJoint(seg.axisIndex)}
+              frameQuaternion={seg.frameQuaternion}
             />
           );
         }
@@ -186,6 +205,7 @@ export function ArmModel() {
             jointRadius={seg.jointRadius}
             isSelected={selectedJoint === seg.axisIndex}
             onClick={() => selectJoint(seg.axisIndex)}
+            frameQuaternion={seg.frameQuaternion}
           />
         );
       })}
@@ -213,6 +233,7 @@ function LinkSegment({
   jointRadius,
   isSelected,
   onClick,
+  frameQuaternion,
 }: {
   start: THREE.Vector3;
   end: THREE.Vector3;
@@ -221,6 +242,7 @@ function LinkSegment({
   jointRadius: number;
   isSelected: boolean;
   onClick: () => void;
+  frameQuaternion: THREE.Quaternion;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const jointRef = useRef<THREE.Mesh>(null);
@@ -278,6 +300,7 @@ function LinkSegment({
       <group
         ref={jointRef}
         position={start}
+        quaternion={frameQuaternion}
         onClick={(e) => {
           e.stopPropagation();
           onClick();
@@ -381,6 +404,7 @@ function RackAndPinionGripper({
   jointRadius,
   isSelected,
   onClick,
+  frameQuaternion,
 }: {
   start: THREE.Vector3;
   end: THREE.Vector3;
@@ -389,22 +413,14 @@ function RackAndPinionGripper({
   jointRadius: number;
   isSelected: boolean;
   onClick: () => void;
+  frameQuaternion: THREE.Quaternion;
 }) {
   const jointRef = useRef<THREE.Group>(null);
   const gearRef = useRef<THREE.Mesh>(null);
 
-  // Compute orientation from start to end (direction of gripper pointing)
-  const { quaternion, length } = useMemo(() => {
-    const direction = new THREE.Vector3().subVectors(end, start);
-    const len = direction.length();
-
-    const quat = new THREE.Quaternion();
-    if (len > 0.01) {
-      const up = new THREE.Vector3(0, 1, 0);
-      quat.setFromUnitVectors(up, direction.clone().normalize());
-    }
-
-    return { quaternion: quat, length: len };
+  // Compute length for gear rotation and jaw offset
+  const length = useMemo(() => {
+    return new THREE.Vector3().subVectors(end, start).length();
   }, [start, end]);
 
   // Pulse animation for selected joint and gear rotation
@@ -436,7 +452,7 @@ function RackAndPinionGripper({
           e.stopPropagation();
           onClick();
         }}
-        quaternion={quaternion} // Align with the gripper direction
+        quaternion={frameQuaternion} // Align with the exact joint frame
       >
         <group rotation={[0, Math.PI / 2, 0]}>
           {/* Base Hub / Servo Casing */}
